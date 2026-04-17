@@ -7,9 +7,11 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: ${SHOW_SQL:false}
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
   mandatory-file-encoding: UTF-8
 
 jwt:
