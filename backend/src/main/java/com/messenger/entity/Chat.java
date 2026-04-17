@@ -29,7 +29,7 @@ public class Chat {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User createdBy;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @PrePersist
