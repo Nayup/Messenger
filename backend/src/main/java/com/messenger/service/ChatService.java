@@ -95,10 +95,13 @@ public class ChatService {
                     .name(chatName)
                     .type(chat.getType())
                     .lastMessage(lastMsg.map(Message::getContent).orElse(""))
-                    .lastMessageTime(lastMsg.map(m -> m.getSentAt()
-                        .atZone(utcZone)
-                        .withZoneSameInstant(vnZone)
-                        .format(formatter)).orElse(""))
+                    .lastMessageTime(lastMsg.map(m -> {
+                        if (m.getSentAt() == null) return "";
+                        return m.getSentAt()
+                            .atZone(utcZone)
+                            .withZoneSameInstant(vnZone)
+                            .format(formatter);
+                    }).orElse(""))
                     .otherUser(otherUser)
                     .build());
         }

@@ -34,7 +34,7 @@ public class Message {
     @Column(name = "message_type", length = 20)
     private String messageType; // TEXT, IMAGE, FILE
 
-    @Column(name = "sent_at", insertable = false, updatable = false)
+    @Column(name = "sent_at")
     private LocalDateTime sentAt;
 
     @PrePersist
