@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import ChatList from '@/components/ui/ChatList';
 import ChatWindow from '@/components/ui/ChatWindow';
 import { useAuthStore } from '@/lib/stores';
 import { fetchChats } from '@/lib/api';
-import { connectWebSocket, subscribeToChats, subscribeToChat, subscribeToUserTopic, setGlobalMessageHandler, setUserNotificationHandler } from '@/lib/websocket';
+import { connectWebSocket, disconnectWebSocket, subscribeToChats, subscribeToChat, subscribeToUserTopic, setGlobalMessageHandler, setUserNotificationHandler } from '@/lib/websocket';
 import { MessageCircle } from 'lucide-react';
 
 export default function Home() {
@@ -16,6 +16,29 @@ export default function Home() {
 
   useEffect(() => {
     initFromStorage();
+  }, []);
+
+  // Sync auth state across browser tabs
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'messenger_user') {
+        if (e.newValue) {
+          // Another tab logged in — refresh state
+          try {
+            const user = JSON.parse(e.newValue);
+            useAuthStore.getState().login(user);
+          } catch {
+            // corrupt data
+          }
+        } else {
+          // Another tab logged out — logout this tab too
+          disconnectWebSocket();
+          useAuthStore.getState().logout();
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   useEffect(() => {
@@ -104,8 +127,18 @@ export default function Home() {
         return;
       }
 
+      let user;
       try {
-        const user = JSON.parse(stored);
+        user = JSON.parse(stored);
+      } catch {
+        // Corrupt data in localStorage — clear and redirect
+        localStorage.removeItem('messenger_token');
+        localStorage.removeItem('messenger_user');
+        setLoading(false);
+        return;
+      }
+
+      try {
         // Load chats
         const chats = await fetchChats();
         setChats(chats);
@@ -117,13 +150,16 @@ export default function Home() {
           // Subscribe tới personal topic để nhận thông báo chat mới
           subscribeToUserTopic(user.username);
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load chats:', err);
-        // If loading fails, clear stale auth and go to login
-        localStorage.removeItem('messenger_token');
-        localStorage.removeItem('messenger_user');
-        router.push('/login');
-        return;
+        // Chỉ logout khi lỗi auth (401/403) — fetchWithAuth đã xử lý redirect
+        // Với lỗi network/server tạm thời, KHÔNG xóa auth — user vẫn giữ login
+        if (err.message?.includes('Phiên đăng nhập hết hạn')) {
+          // fetchWithAuth đã clear auth và redirect rồi, không cần làm gì thêm
+          return;
+        }
+        // Lỗi network/server tạm thời — giữ auth, cho user thử lại
+        console.warn('Lỗi tạm thời khi load chats, giữ trạng thái đăng nhập');
       }
       setLoading(false);
     };

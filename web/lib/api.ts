@@ -5,6 +5,9 @@ function getToken(): string | null {
   return localStorage.getItem('messenger_token');
 }
 
+// Flag to prevent multiple simultaneous auth redirects
+let isRedirectingToLogin = false;
+
 async function fetchWithAuth(url: string, options: RequestInit = {}) {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -21,11 +24,16 @@ async function fetchWithAuth(url: string, options: RequestInit = {}) {
   });
 
   if (!res.ok) {
-    // If token is expired/invalid, clear auth and redirect to login
-    if ((res.status === 401 || res.status === 403) && typeof window !== 'undefined') {
-      localStorage.removeItem('messenger_token');
-      localStorage.removeItem('messenger_user');
-      window.location.href = '/login';
+    // Nếu token hết hạn/không hợp lệ — chỉ logout cho protected endpoints
+    // Không logout khi gọi auth endpoints (login/register)
+    const isAuthEndpoint = url.startsWith('/api/auth/');
+    if ((res.status === 401 || res.status === 403) && !isAuthEndpoint && typeof window !== 'undefined') {
+      if (!isRedirectingToLogin) {
+        isRedirectingToLogin = true;
+        localStorage.removeItem('messenger_token');
+        localStorage.removeItem('messenger_user');
+        window.location.href = '/login';
+      }
       throw new Error('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.');
     }
     const error = await res.json().catch(() => ({ error: 'Request failed' }));
