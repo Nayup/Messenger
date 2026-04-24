@@ -130,32 +130,23 @@ export default function Home() {
         const existingChat = state.chats.find((c) => c.id === chatId);
 
         if (!existingChat) {
-          // Chat mới! Fetch lại danh sách chats
+          // Chat mới! Fetch lại danh sách chats + subscribe
           try {
             const newChats = await fetchChats();
             state.setChats(newChats);
-            // Subscribe tới chat topic mới
             subscribeToChat(chatId);
           } catch (err) {
             console.error('Failed to refresh chats:', err);
           }
         } else {
-          // Chat đã tồn tại — cập nhật last message
+          // Chat đã tồn tại — chỉ cập nhật preview (last message + đẩy lên đầu)
+          // KHÔNG addMessage ở đây — chat topic (/topic/chat/{id}) đã xử lý rồi
           const time = new Date().toLocaleTimeString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
             timeZone: 'Asia/Ho_Chi_Minh',
           });
           state.updateChatLastMessage(chatId, notification.content, time);
-
-          // Thêm tin nhắn vào messages nếu chưa có (từ user topic)
-          state.addMessage(chatId, {
-            id: Date.now().toString(),
-            sender: senderUsername || 'Unknown',
-            content: notification.content,
-            timestamp: time,
-            isMine: false,
-          });
         }
       }
     });
