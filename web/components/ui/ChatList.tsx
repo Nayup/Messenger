@@ -1,38 +1,55 @@
 'use client';
-import { disconnectWebSocket, subscribeToChats, subscribeToUserTopic, setUserNotificationHandler } from '@/lib/websocket';
+import { disconnectWebSocket, subscribeToChats, subscribeToUserTopic } from '@/lib/websocket';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, MessageCircle, Plus, LogOut, Users } from 'lucide-react';
-import { fetchChats } from '@/lib/api';
+import { Search, MessageCircle, Plus, LogOut, Users, Heart } from 'lucide-react';
+import { fetchChats, fetchPendingCount } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import NewChatDialog from './NewChatDialog';
+import FriendsPanel from './FriendsPanel';
 export default function ChatList() {
   const router = useRouter();
   const { chats, setCurrentChat, currentChatId, currentUser, logout, setChats } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
+  const [showFriends, setShowFriends] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Load pending friend request count
+  useEffect(() => {
+    if (!currentUser) return;
+    const loadCount = async () => {
+      try {
+        const data = await fetchPendingCount();
+        setPendingCount(data.count);
+      } catch (err) {
+        // ignore
+      }
+    };
+    loadCount();
+    // Poll every 30s
+    const interval = setInterval(loadCount, 30000);
+    // Listen for instant friend updates from WebSocket
+    const handleFriendUpdate = () => loadCount();
+    window.addEventListener('friend-update', handleFriendUpdate);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('friend-update', handleFriendUpdate);
+    };
+  }, [currentUser?.username]);
 
   useEffect(() => {
-  if (!currentUser) return;
+    if (!currentUser) return;
 
-  // Subscribe tất cả chat hiện tại
-  subscribeToChats(chats.map((c) => c.id));
+    // Subscribe tất cả chat hiện tại
+    subscribeToChats(chats.map((c) => c.id));
 
-  // Subscribe personal topic
-  subscribeToUserTopic(currentUser.username);
+    // Subscribe personal topic
+    subscribeToUserTopic(currentUser.username);
 
-  // Khi nhận notification → reload chat list
-  setUserNotificationHandler(async () => {
-    try {
-      const newChats = await fetchChats();
-      setChats(newChats);
-      subscribeToChats(newChats.map((c) => c.id));
-    } catch (err) {
-      console.error('Failed to reload chats:', err);
-    }
-  });
+    // Notification handler đã được set trong page.tsx — KHÔNG set lại ở đây
   }, [currentUser?.username]);
 
   const filteredChats = chats.filter((chat) =>
@@ -81,6 +98,19 @@ export default function ChatList() {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            id="friends-btn"
+            onClick={() => setShowFriends(true)}
+            className="p-2 rounded-xl hover:bg-zinc-800/80 text-zinc-400 hover:text-pink-400 transition-all duration-200 relative"
+            title="Bạn bè"
+          >
+            <Heart className="w-5 h-5" />
+            {pendingCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-pink-500 rounded-full text-[9px] text-white font-bold flex items-center justify-center">
+                {pendingCount}
+              </span>
+            )}
+          </button>
           <button
             id="new-chat-btn"
             onClick={() => setShowNewChat(true)}
@@ -204,6 +234,17 @@ export default function ChatList() {
         <NewChatDialog
           onClose={() => setShowNewChat(false)}
           onChatCreated={handleChatCreated}
+        />
+      )}
+
+      {/* Friends Panel */}
+      {showFriends && (
+        <FriendsPanel
+          onClose={() => {
+            setShowFriends(false);
+            // Refresh pending count
+            fetchPendingCount().then((d) => setPendingCount(d.count)).catch(() => {});
+          }}
         />
       )}
     </div>

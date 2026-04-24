@@ -75,15 +75,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   chats: [],
   setChats: (chats) => set({ chats }),
 
-  // Cập nhật tin nhắn cuối cùng trong chat list preview
+  // Cập nhật tin nhắn cuối cùng trong chat list preview + đẩy lên đầu
   updateChatLastMessage: (chatId, content, time) =>
-    set((state) => ({
-      chats: state.chats.map((chat) =>
-        chat.id === chatId
-          ? { ...chat, lastMessage: content, lastMessageTime: time }
-          : chat
-      ),
-    })),
+    set((state) => {
+      const updatedChat = state.chats.find((c) => c.id === chatId);
+      if (!updatedChat) return state;
+      const otherChats = state.chats.filter((c) => c.id !== chatId);
+      return {
+        chats: [
+          { ...updatedChat, lastMessage: content, lastMessageTime: time },
+          ...otherChats,
+        ],
+      };
+    }),
 
   currentChatId: null,
   setCurrentChat: (id: string) => set({ currentChatId: id }),

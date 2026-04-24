@@ -276,8 +276,6 @@ public class ChatService {
 
         List<ChatDTO> chatDTOs = new ArrayList<>();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-        java.time.ZoneId utcZone = java.time.ZoneId.of("UTC");
-        java.time.ZoneId vnZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
 
         for (ChatParticipant cp : participations) {
             Chat chat = cp.getChat();
@@ -326,16 +324,22 @@ public class ChatService {
                     .lastMessage(lastMsg.map(Message::getContent).orElse(""))
                     .lastMessageTime(lastMsg.map(m -> {
                         if (m.getSentAt() == null) return "";
-                        return m.getSentAt()
-                            .atZone(utcZone)
-                            .withZoneSameInstant(vnZone)
-                            .format(formatter);
+                        return m.getSentAt().format(formatter);
                     }).orElse(""))
                     .otherUser(otherUser)
                     .members(members)
                     .memberCount(memberCount)
                     .build());
         }
+
+        // Sắp xếp: chat có tin nhắn mới nhất lên đầu
+        chatDTOs.sort((a, b) -> {
+            String timeA = a.getLastMessageTime();
+            String timeB = b.getLastMessageTime();
+            if (timeA == null || timeA.isEmpty()) return 1;
+            if (timeB == null || timeB.isEmpty()) return -1;
+            return timeB.compareTo(timeA);
+        });
 
         return chatDTOs;
     }
@@ -347,8 +351,6 @@ public class ChatService {
         Optional<Message> lastMsg = messageRepository.findFirstByChatIdOrderBySentAtDesc(chat.getId());
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
-        java.time.ZoneId utcZone = java.time.ZoneId.of("UTC");
-        java.time.ZoneId vnZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
 
         List<ChatDTO.MemberDTO> members = allParticipants.stream()
                 .map(p -> ChatDTO.MemberDTO.builder()
@@ -367,10 +369,7 @@ public class ChatService {
                 .lastMessage(lastMsg.map(Message::getContent).orElse(""))
                 .lastMessageTime(lastMsg.map(m -> {
                     if (m.getSentAt() == null) return "";
-                    return m.getSentAt()
-                        .atZone(utcZone)
-                        .withZoneSameInstant(vnZone)
-                        .format(formatter);
+                    return m.getSentAt().format(formatter);
                 }).orElse(""))
                 .members(members)
                 .memberCount(allParticipants.size())

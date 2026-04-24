@@ -37,7 +37,7 @@ export default function ChatWindow() {
           sender: m.sender?.username || 'Unknown',
           content: m.content,
           timestamp: m.sentAt
-            ? new Date(m.sentAt + 'Z').toLocaleTimeString('vi-VN', {
+            ? new Date(m.sentAt).toLocaleTimeString('vi-VN', {
                 hour: '2-digit',
                 minute: '2-digit',
                 timeZone: 'Asia/Ho_Chi_Minh',

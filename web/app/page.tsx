@@ -54,9 +54,10 @@ export default function Home() {
       const chatId = msg.chat?.id?.toString() || msg.chatId;
       const senderUsername = msg.sender?.username || msg.senderUsername;
       const messageType = msg.messageType || 'TEXT';
-      const time = new Date().toLocaleTimeString([], {
+      const time = new Date().toLocaleTimeString('vi-VN', {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Asia/Ho_Chi_Minh',
       });
 
       // Cập nhật chat list preview (last message)
@@ -95,19 +96,26 @@ export default function Home() {
       const state = useAuthStore.getState();
       const notificationType = notification.type;
 
-      // Group events — reload chats
+      // Group events + Friend events — reload relevant data
       if (['GROUP_CREATED', 'GROUP_RENAMED', 'MEMBERS_ADDED', 'MEMBER_REMOVED', 'MEMBER_LEFT'].includes(notificationType)) {
         try {
           const newChats = await fetchChats();
           state.setChats(newChats);
           subscribeToChats(newChats.map((c) => c.id));
-          // Subscribe tới personal topic
           if (state.currentUser?.username) {
             subscribeToUserTopic(state.currentUser.username);
           }
         } catch (err) {
           console.error('Failed to refresh chats after group event:', err);
         }
+        return;
+      }
+
+      // Friend events — just trigger re-render (ChatList polls pending count)
+      if (['FRIEND_REQUEST', 'FRIEND_ACCEPTED', 'FRIEND_REMOVED'].includes(notificationType)) {
+        // ChatList sẽ tự poll pending count mỗi 30s
+        // Hoặc force refresh bằng cách dispatch event
+        window.dispatchEvent(new CustomEvent('friend-update'));
         return;
       }
 
@@ -133,9 +141,10 @@ export default function Home() {
           }
         } else {
           // Chat đã tồn tại — cập nhật last message
-          const time = new Date().toLocaleTimeString([], {
+          const time = new Date().toLocaleTimeString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
+            timeZone: 'Asia/Ho_Chi_Minh',
           });
           state.updateChatLastMessage(chatId, notification.content, time);
 

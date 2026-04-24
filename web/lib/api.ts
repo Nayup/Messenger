@@ -172,3 +172,46 @@ export interface MessageFromAPI {
 export async function fetchMessages(chatId: string): Promise<MessageFromAPI[]> {
   return fetchWithAuth(`/api/chats/${chatId}/messages`);
 }
+
+// ==================== FRIENDS ====================
+
+export interface FriendshipDTO {
+  id: string;
+  status: string;
+  user: UserDTO;
+  createdAt: string;
+  isRequester: boolean;
+}
+
+export async function sendFriendRequest(userId: string): Promise<FriendshipDTO> {
+  return fetchWithAuth(`/api/friends/request/${userId}`, { method: 'POST' });
+}
+
+export async function acceptFriendRequest(friendshipId: string): Promise<FriendshipDTO> {
+  return fetchWithAuth(`/api/friends/accept/${friendshipId}`, { method: 'POST' });
+}
+
+export async function rejectFriendRequest(friendshipId: string): Promise<void> {
+  return fetchWithAuth(`/api/friends/reject/${friendshipId}`, { method: 'POST' });
+}
+
+export async function unfriend(userId: string): Promise<void> {
+  return fetchWithAuth(`/api/friends/${userId}`, { method: 'DELETE' });
+}
+
+export async function fetchFriends(): Promise<FriendshipDTO[]> {
+  return fetchWithAuth('/api/friends');
+}
+
+export async function fetchPendingRequests(): Promise<FriendshipDTO[]> {
+  return fetchWithAuth('/api/friends/requests');
+}
+
+export async function fetchPendingCount(): Promise<{ count: number }> {
+  return fetchWithAuth('/api/friends/requests/count');
+}
+
+export async function fetchFriendStatus(userId: string): Promise<{ status: string }> {
+  return fetchWithAuth(`/api/friends/status/${userId}`);
+}
+
