@@ -35,16 +35,35 @@ services:
   web:
     build:
       context: ./web
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: messenger-web
     ports:
       - "3000:3000"
     environment:
-      # NEXT_PUBLIC_WS_URL được dùng trong code (nếu bạn muốn thay đổi sau)
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
+      # Trong Docker network, web container gọi backend qua tên service
+      # Nhưng browser gọi từ máy host → phải dùng localhost
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_WS_URL: http://localhost:8080
     depends_on:
       - backend
     restart: unless-stopped
+
+# =============================================
+# Config cho Railway deploy (comment lại)
+# =============================================
+#  web:
+#    build:
+#      context: ./web
+#      dockerfile: Dockerfile
+#      args:
+#        NEXT_PUBLIC_API_URL: https://your-backend.railway.app
+#        NEXT_PUBLIC_WS_URL: https://your-backend.railway.app
+#    container_name: messenger-web
+#    ports:
+#      - "3000:3000"
+#    depends_on:
+#      - backend
+#    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -16,6 +16,7 @@ export interface Message {
   content: string;
   timestamp: string;
   isMine: boolean;
+  messageType?: string; // TEXT, SYSTEM
 }
 
 interface AuthStore {

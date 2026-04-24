@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { fetchUsers, createPrivateChat, UserDTO } from '@/lib/api';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Search, X, MessageCircle, Loader2 } from 'lucide-react';
+import { Search, X, MessageCircle, Loader2, Users } from 'lucide-react';
+import NewGroupDialog from './NewGroupDialog';
 
 interface Props {
   onClose: () => void;
@@ -15,6 +16,7 @@ export default function NewChatDialog({ onClose, onChatCreated }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState<string | null>(null);
+  const [showGroupDialog, setShowGroupDialog] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -47,6 +49,16 @@ export default function NewChatDialog({ onClose, onChatCreated }: Props) {
     }
   };
 
+  // Nếu đang hiện dialog tạo nhóm
+  if (showGroupDialog) {
+    return (
+      <NewGroupDialog
+        onClose={onClose}
+        onGroupCreated={onChatCreated}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -76,8 +88,31 @@ export default function NewChatDialog({ onClose, onChatCreated }: Props) {
           </button>
         </div>
 
+        {/* Tạo nhóm button */}
+        <div className="px-4 pt-4">
+          <button
+            onClick={() => setShowGroupDialog(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 hover:from-emerald-500/20 hover:to-teal-500/20 transition-all"
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+              <Users className="w-5 h-5 text-white" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium text-emerald-300">Tạo nhóm mới</p>
+              <p className="text-xs text-zinc-500">Trò chuyện với nhiều người</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Divider */}
+        <div className="px-4 py-2 flex items-center gap-3">
+          <div className="flex-1 h-px bg-zinc-800" />
+          <span className="text-[11px] text-zinc-600 uppercase tracking-wider">hoặc chat 1-1</span>
+          <div className="flex-1 h-px bg-zinc-800" />
+        </div>
+
         {/* Search */}
-        <div className="p-4">
+        <div className="px-4 pb-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <input
@@ -93,7 +128,7 @@ export default function NewChatDialog({ onClose, onChatCreated }: Props) {
         </div>
 
         {/* User list */}
-        <div className="max-h-80 overflow-y-auto px-2 pb-4">
+        <div className="max-h-64 overflow-y-auto px-2 pb-4">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />

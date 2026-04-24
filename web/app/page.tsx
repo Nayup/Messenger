@@ -53,6 +53,7 @@ export default function Home() {
       const state = useAuthStore.getState();
       const chatId = msg.chat?.id?.toString() || msg.chatId;
       const senderUsername = msg.sender?.username || msg.senderUsername;
+      const messageType = msg.messageType || 'TEXT';
       const time = new Date().toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
@@ -60,6 +61,19 @@ export default function Home() {
 
       // Cập nhật chat list preview (last message)
       state.updateChatLastMessage(chatId, msg.content, time);
+
+      // System messages — hiện cho tất cả mọi người
+      if (messageType === 'SYSTEM') {
+        state.addMessage(chatId, {
+          id: msg.id || Date.now().toString(),
+          sender: '',
+          content: msg.content,
+          timestamp: time,
+          isMine: false,
+          messageType: 'SYSTEM',
+        });
+        return;
+      }
 
       // Thêm tin nhắn vào danh sách messages (nếu không phải từ mình)
       if (senderUsername !== state.currentUser?.username) {
@@ -69,16 +83,35 @@ export default function Home() {
           content: msg.content,
           timestamp: time,
           isMine: false,
+          messageType,
         });
       }
     });
   }, []);
 
-  // Handle user notifications — phát hiện chat mới khi có tin nhắn đến
+  // Handle user notifications — phát hiện chat mới + group events
   useEffect(() => {
     setUserNotificationHandler(async (notification: any) => {
-      if (notification.type === 'NEW_MESSAGE') {
-        const state = useAuthStore.getState();
+      const state = useAuthStore.getState();
+      const notificationType = notification.type;
+
+      // Group events — reload chats
+      if (['GROUP_CREATED', 'GROUP_RENAMED', 'MEMBERS_ADDED', 'MEMBER_REMOVED', 'MEMBER_LEFT'].includes(notificationType)) {
+        try {
+          const newChats = await fetchChats();
+          state.setChats(newChats);
+          subscribeToChats(newChats.map((c) => c.id));
+          // Subscribe tới personal topic
+          if (state.currentUser?.username) {
+            subscribeToUserTopic(state.currentUser.username);
+          }
+        } catch (err) {
+          console.error('Failed to refresh chats after group event:', err);
+        }
+        return;
+      }
+
+      if (notificationType === 'NEW_MESSAGE') {
         const chatId = notification.chatId;
         const senderUsername = notification.senderUsername;
 

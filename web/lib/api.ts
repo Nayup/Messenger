@@ -81,13 +81,25 @@ export async function searchUsersAPI(q: string): Promise<UserDTO[]> {
 
 // ==================== CHATS ====================
 
+export interface MemberDTO {
+  id: string;
+  username: string;
+  email: string;
+  avatarUrl: string | null;
+  role: 'ADMIN' | 'MEMBER';
+}
+
 export interface ChatDTO {
   id: string;
   name: string;
-  type: string;
+  type: 'PRIVATE' | 'GROUP';
   lastMessage: string;
   lastMessageTime: string;
   otherUser: UserDTO | null;
+  // Group chat fields
+  members: MemberDTO[] | null;
+  memberCount: number;
+  avatarUrl: string | null;
 }
 
 export async function fetchChats(): Promise<ChatDTO[]> {
@@ -99,6 +111,45 @@ export async function createPrivateChat(otherUsername: string) {
     method: 'POST',
     body: JSON.stringify({ otherUsername }),
   });
+}
+
+// ==================== GROUP CHAT ====================
+
+export async function createGroupChat(groupName: string, memberUsernames: string[]): Promise<ChatDTO> {
+  return fetchWithAuth('/api/chats/group', {
+    method: 'POST',
+    body: JSON.stringify({ groupName, memberUsernames }),
+  });
+}
+
+export async function renameGroup(chatId: string, newName: string): Promise<ChatDTO> {
+  return fetchWithAuth(`/api/chats/${chatId}/name`, {
+    method: 'PUT',
+    body: JSON.stringify({ newName }),
+  });
+}
+
+export async function addGroupMembers(chatId: string, usernames: string[]): Promise<ChatDTO> {
+  return fetchWithAuth(`/api/chats/${chatId}/members`, {
+    method: 'POST',
+    body: JSON.stringify({ usernames }),
+  });
+}
+
+export async function removeGroupMember(chatId: string, userId: string): Promise<ChatDTO> {
+  return fetchWithAuth(`/api/chats/${chatId}/members/${userId}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function leaveGroup(chatId: string): Promise<void> {
+  return fetchWithAuth(`/api/chats/${chatId}/leave`, {
+    method: 'POST',
+  });
+}
+
+export async function getGroupMembers(chatId: string): Promise<MemberDTO[]> {
+  return fetchWithAuth(`/api/chats/${chatId}/members`);
 }
 
 // ==================== MESSAGES ====================

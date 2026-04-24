@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/lib/stores';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Search, MessageCircle, Plus, LogOut } from 'lucide-react';
+import { Search, MessageCircle, Plus, LogOut, Users } from 'lucide-react';
 import { fetchChats } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import NewChatDialog from './NewChatDialog';
@@ -133,44 +133,69 @@ export default function ChatList() {
             </button>
           </div>
         ) : (
-          filteredChats.map((chat) => (
-            <div
-              key={chat.id}
-              onClick={() => setCurrentChat(chat.id)}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150 border-l-2 ${
-                currentChatId === chat.id
-                  ? 'bg-blue-500/10 border-l-blue-500'
-                  : 'hover:bg-zinc-900/60 border-l-transparent'
-              }`}
-            >
-              <Avatar className="h-11 w-11 flex-shrink-0">
-                <AvatarImage
-                  src={
-                    chat.otherUser?.avatarUrl ||
-                    `https://api.dicebear.com/7.x/initials/svg?seed=${chat.name}`
-                  }
-                />
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 to-violet-600 text-white text-sm">
-                  {(chat.name || '?').charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline">
-                  <p className="font-semibold text-sm text-zinc-200 truncate">
-                    {chat.name || 'Chat'}
+          filteredChats.map((chat) => {
+            const isGroup = chat.type === 'GROUP';
+            return (
+              <div
+                key={chat.id}
+                onClick={() => setCurrentChat(chat.id)}
+                className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-150 border-l-2 ${
+                  currentChatId === chat.id
+                    ? 'bg-blue-500/10 border-l-blue-500'
+                    : 'hover:bg-zinc-900/60 border-l-transparent'
+                }`}
+              >
+                {/* Avatar — group vs private */}
+                {isGroup ? (
+                  <div className="relative flex-shrink-0">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-zinc-950 rounded-full flex items-center justify-center border border-zinc-800">
+                      <span className="text-[9px] text-zinc-400 font-bold">
+                        {chat.memberCount}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <Avatar className="h-11 w-11 flex-shrink-0">
+                    <AvatarImage
+                      src={
+                        chat.otherUser?.avatarUrl ||
+                        `https://api.dicebear.com/7.x/initials/svg?seed=${chat.name}`
+                      }
+                    />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-violet-600 text-white text-sm">
+                      {(chat.name || '?').charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-baseline">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <p className="font-semibold text-sm text-zinc-200 truncate">
+                        {chat.name || 'Chat'}
+                      </p>
+                      {isGroup && (
+                        <span className="flex-shrink-0 text-[9px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
+                          Nhóm
+                        </span>
+                      )}
+                    </div>
+                    {chat.lastMessageTime && (
+                      <p className="text-[11px] text-zinc-500 ml-2 flex-shrink-0">
+                        {chat.lastMessageTime}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500 truncate mt-0.5">
+                    {chat.lastMessage || 'Chưa có tin nhắn'}
                   </p>
-                  {chat.lastMessageTime && (
-                    <p className="text-[11px] text-zinc-500 ml-2 flex-shrink-0">
-                      {chat.lastMessageTime}
-                    </p>
-                  )}
                 </div>
-                <p className="text-xs text-zinc-500 truncate mt-0.5">
-                  {chat.lastMessage || 'Chưa có tin nhắn'}
-                </p>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </ScrollArea>
 
